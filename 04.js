@@ -51,7 +51,8 @@ let buildDurationsAndMaxMinutes = (map) => {
   let massaged = [];
   for (const [k, v] of Object.entries(map)) {
     massaged.push([parseInt(k), v.time, 
-      v.sleep.indexOf(Math.max(...v.sleep))])
+      v.sleep.indexOf(Math.max(...v.sleep)),
+      Math.max(...v.sleep)])
   }
   return massaged;
 }
@@ -64,6 +65,11 @@ let data = sleep(d).sort((a,b) => a[0] - b[0]);
 
 let guardmap = buildMap(data);
 let answer = buildDurationsAndMaxMinutes(guardmap);
-answer = answer.sort((a,b) => b[1]-a[1]);
 
-console.log(answer[0][0]*answer[0][2]);
+// Solution One
+let answer1 = answer.sort((a,b) => b[1]-a[1]);
+console.log(answer1[0][0]*answer1[0][2]);
+
+// Solution Two
+let answer2 = answer.sort((a,b) => b[3]-a[3]);
+console.log(answer2[0][0]*answer2[0][2]) 
