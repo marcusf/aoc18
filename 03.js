@@ -7,30 +7,26 @@ const ID=0,X=1,Y=2,W=3,H=4;
 let parsed = d.map(l => /#(\d+) @ (\d+),(\d+): (\d+)x(\d+)/.exec(l))
                 .map(l => l.slice(1,6).map(x=>parseInt(x)));
 
-let maxw = 0, maxh = 0, matrix = [], xproto = [], count = 0;
+let width = 0, height = 0, matrix = [], xproto = [], count = 0;
 
-for (let line of parsed) {
-  maxw = Math.max(maxw, line[X]+line[W]+1)
-  maxh = Math.max(maxh, line[Y]+line[H]+1)
+for (const [_,x,y,w,h] of parsed) {
+  width = Math.max(width, x+w)
+  height = Math.max(height, y+h)
 }
 
-for (let x = 0; x < maxw; x++) xproto[x] = 0;
-for (let y = 0; y < maxh; y++) matrix.push(xproto.slice(0));
+for (let y = 0; y < height; y++) matrix.push(Array(width).fill(0));
 
 // Part One
-for (let line of parsed) {
-  for (let y = line[Y]; y < line[Y]+line[H]; y++) {
-    for (let x = line[X]; x < line[X]+line[W]; x++) {
+for (const [_,X,Y,W,H] of parsed) {
+  for (let y = Y; y < Y+H; y++) {
+    for (let x = X; x < X+W; x++) {
       matrix[y][x]++;
     }
   } 
 }
 
-for (let x = 0; x < maxw; x++) {
-  for (let y = 0; y < maxh; y++) {
-    if (matrix[y][x] > 1) count++;
-  }
-}
+for (const row of matrix) for (const x of row) if (x > 1) count++;
+
 
 console.log(count);
 
