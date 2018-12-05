@@ -1,75 +1,37 @@
-const fs = require('fs');
+const parse = l => [parseInt(l.substr(15,2)), l[19]=='w', /\d+/.exec(l.substr(19))];
 
-const START = 'start', SLEEPS = 'sleeps', WAKES = 'wakes';
-
-let parse = line => {
-  let date = line.substr(1,16); // [1518-09-29 00:18]
-  let rest = line.substr(19);
-  let guard = -1, state = START;
-  if (rest == 'wakes up') {
-    state = WAKES;
-  } else if (rest == 'falls asleep') {
-    state = SLEEPS;
-  } else {
-    guard = parseInt(/Guard #(\d+) begins shift/.exec(rest)[1]);
+const aggregate = lines => {
+  let s = [], r = [], guard, start, c;
+  for (const [end, wake, g] of lines) {
+    guard = g ? g[0] : guard;
+    if (wake) s.push([guard, start, end - start]);
+    start = end;
   }
-  return {date: new Date(date), state: state, guard: guard};
-}
-
-let sleep = lines => {
-  let output = [], guard = -1;
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i].guard != -1) guard = lines[i].guard;
-    if (lines[i].state == WAKES) {
-      if (lines[i-1].state != SLEEPS) {
-      }
-      let mins = (lines[i].date.getMinutes() - lines[i-1].date.getMinutes());
-      output.push([guard, lines[i-1].date.getMinutes(), mins]);
+  for (const [id, t, d] of s.sort()) {
+    if (c != id) {
+      r.unshift([id, []]);
+      c = id;
     }
+    r[0][1].push([t, d]);
   }
-  return output;
+  return r;
 }
 
-let calcSleep = (data, map) => {
-  for (const line of data) {
-    map[line[0]].time += line[2];
-    for (let i = 0; i < line[2]; i++) {
-      map[line[0]].sleep[line[1]+i]++;
-    }
-  }
-}
-
-let buildMap = (data) => {
-  let hproto = [], guardmap = {};
-  for (let i = 0; i < 60; i++) hproto[i] = 0;
-  data.forEach(v => guardmap[v[0]] = { time: 0, sleep: hproto.slice(0) })
-  calcSleep(data, guardmap);
-  return guardmap;
-}
-
-let buildDurationsAndMaxMinutes = (map) => {
-  let massaged = [];
-  for (const [k, v] of Object.entries(map)) {
-    massaged.push([parseInt(k), v.time, 
-      v.sleep.indexOf(Math.max(...v.sleep)),
-      Math.max(...v.sleep)])
-  }
-  return massaged;
+const solve = (l) => {
+  const [id,p] = l;
+  let t = Array(60).fill(0);
+  for (const [s, d] of p) for (let i=0; i < d; i++) t[s+i]++;
+  return [id,p.reduce((n,[_,i])=>n+i,0), t.indexOf(Math.max(...t)), Math.max(...t)];
 }
 
 
-let d = fs.readFileSync('04.txt', 'utf8').split('\n')
-            .map(parse).sort((a,b) => a.date - b.date);
-
-let data = sleep(d).sort((a,b) => a[0] - b[0]);
-
-let guardmap = buildMap(data);
-let answer = buildDurationsAndMaxMinutes(guardmap);
+let d = require('fs').readFileSync('04.txt','utf8').split('\n').sort();
+let answer = aggregate(d.map(parse)).map(solve);
 
 // Solution One
-let answer1 = answer.sort((a,b) => b[1]-a[1]);
-console.log(answer1[0][0]*answer1[0][2]);
+let answer1 = answer.sort((a,b) => b[1]-a[1])[0];
+console.log(answer1[0]*answer1[2]);
 
 // Solution Two
-let answer2 = answer.sort((a,b) => b[3]-a[3]);
-console.log(answer2[0][0]*answer2[0][2]) 
+let answer2 = answer.sort((a,b) => b[3]-a[3])[0];
+console.log(answer2[0]*answer2[2]) 
