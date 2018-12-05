@@ -16,16 +16,20 @@ for (const [_,x,y,w,h] of parsed) {
 
 for (let y = 0; y < height; y++) matrix.push(Array(width).fill(0));
 
+let m = Array(width*height).fill(0);
+
 // Part One
 for (const [_,X,Y,W,H] of parsed) {
   for (let y = Y; y < Y+H; y++) {
     for (let x = X; x < X+W; x++) {
       matrix[y][x]++;
+      m[y*height+x]++;
     }
   } 
 }
 
-for (const row of matrix) for (const x of row) if (x > 1) count++;
+//for (const row of matrix) for (const x of row) if (x > 1) count++;
+for (const x of m) if (x > 1) count++;
 
 
 console.log(count);
