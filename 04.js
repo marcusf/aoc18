@@ -1,4 +1,4 @@
-const parse = l => [parseInt(l.substr(15,2)), l[19]=='w', /\d+/.exec(l.substr(19))];
+const parse = l => [+l.substr(15,2), l[19]=='w', /\d+/.exec(l.substr(19))];
 
 const aggregate = lines => {
   let s = [], r = [], guard, start, c;
