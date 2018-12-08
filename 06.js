@@ -6,7 +6,6 @@ const width = Math.max(...xs), height = Math.max(...ys);
 const maxw = Math.max(...xs), maxh = Math.max(...ys), 
       minw = Math.min(...xs), minh = Math.min(...ys);
  
-const grid = Array(width * height).fill(-19);
 
 const dist = (x1,y1,x2,y2) => Math.abs(x2-x1)+Math.abs(y2-y1);
 const closest = (x,y,points) => {
@@ -15,32 +14,57 @@ const closest = (x,y,points) => {
   return distances.filter(([x,]) => x == min);
 }
 
-for (let point = 0; point <= grid.length-1; point++) {
-  const x = point % width, y = ~~(point / width);
-  const distances = closest(x, y, points);
-  grid[point] = distances.length == 1 ? distances[0][1] : -19;
-}
+const sumdist = (x,y,points) => points.map(([x2,y2],) => dist(x,y,x2,y2)).reduce((a,b) => a+b, 0);
 
-const boundary = [-19];
-for (let point = 0; point <= grid.length-1; point++) {
-  const x = point % width, y = ~~(point / width);
-  if (x == maxw || x == minw || y == maxh || y == minh) 
-    boundary.push(grid[point]);
-}
+const solve1 = () => {
+  const grid = Array(width * height).fill(-19);
 
-const output = grid.sort().filter(l => boundary.indexOf(l) < 0);
-
-let winner = -2, length = 0, current = -2, curlen = 0;
-for (const cell of output) {
-  if (cell != current) {
-    curlen = 0;
-    current = cell;
+  for (let point = 0; point <= grid.length-1; point++) {
+    const x = point % width, y = ~~(point / width);
+    const distances = closest(x, y, points);
+    grid[point] = distances.length == 1 ? distances[0][1] : -19;
   }
-  curlen++;
-  if (curlen > length) {
-    length = curlen;
-    winner = current;
+  
+  const boundary = [-19];
+  for (let point = 0; point <= grid.length-1; point++) {
+    const x = point % width, y = ~~(point / width);
+    if (x == maxw || x == minw || y == maxh || y == minh) 
+      boundary.push(grid[point]);
   }
+  
+  const output = grid.sort().filter(l => boundary.indexOf(l) < 0);
+  
+  let winner = -2, length = 0, current = -2, curlen = 0;
+  for (const cell of output) {
+    if (cell != current) {
+      curlen = 0;
+      current = cell;
+    }
+    curlen++;
+    if (curlen > length) {
+      length = curlen;
+      winner = current;
+    }
+  }
+  
+  console.log(winner, length);
+
 }
 
-console.log(winner, length);
+const solve2 = () => {
+  const grid = Array(width * height).fill(-1);
+  let sump = 0;
+
+  for (let point = 0; point <= grid.length-1; point++) {
+    const x = point % width, y = ~~(point / width);
+    if (sumdist(x, y, points) < 10000) sump++;
+  }
+
+  console.log(sump);
+
+}
+  
+
+
+solve1();
+solve2();
