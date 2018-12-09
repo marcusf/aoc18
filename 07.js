@@ -1,4 +1,4 @@
-const d = require('fs').readFileSync('07.txt','utf8')
+const d = require('fs').readFileSync('07.txt','utf8');
 
 const vertices = d.split('\n').map(s => / ([A-Z]).*step ([A-Z])/.exec(s).slice(1,3).map(a => a.charCodeAt(0)-65));
 
