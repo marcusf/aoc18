@@ -1,15 +1,27 @@
-data = list(map(int,open("08.in").read().split(" ")))
+from anytree import Node, PreOrderIter
 
-def parse(data, t, results):
-  children, mdlen, mdstart = data[t], data[t+1], t+2
+d = list(map(int,open('08.in').read().split(' ')))
 
+def deserialize(d, t, parent):
+  children, entries, start, lis = d[t], d[t+1], t+2, list()
+  node = Node(lis, parent=parent)
   for i in range(0, children):
-    if len(data)-mdstart <= 2:
-      break
-    mdstart, results = parse(data, mdstart, results)
+    if len(d) - start <= 2: break
+    start, node = deserialize(d, start, node)
+  lis.extend(d[start:(start+entries)])
+  return (start+entries, parent)
 
-  results = results + data[mdstart:(mdstart+mdlen)]
-  return (mdstart+mdlen, results)
+def value(node):
+  val = 0
+  if node.is_leaf:
+    val = sum(node.name)
+  else:
+    for idx in node.name:
+      if idx-1 < len(node.children):
+        val = val + value(node.children[idx-1])
+  return val
 
-_, result = parse(data, 0, [])
-print(sum(result))
+tree = deserialize(d, 0, Node([]))[1].children[0]
+
+print(sum([sum(node.name) for node in PreOrderIter(tree)]))
+print(value(tree))
