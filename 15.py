@@ -98,10 +98,11 @@ class Character:
   x, y = 0, 0
   node = None
 
-  def __init__(self, ctype, x, y):
+  def __init__(self, ctype, x, y, hp=3):
     self.ctype = ctype
     self.x = x
     self.y = y
+    self.attack_power = hp
 
   def __str__(self): return "{} ({}x{})".format(self.ctype, self.x, self.y)
   def __repr__(self): return "{} ({}x{})".format(self.ctype, self.x, self.y)
@@ -123,14 +124,16 @@ class Character:
 class GameMap:
   mapp = None
   characters = None
+  elf_hp = None
 
-  def __init__(self, fname):
+  def __init__(self, fname, elf_hp=3):
+    self.elf_hp = elf_hp    
     mapp, chars = self.parse_input(fname)
     self.mapp = mapp
     self.characters = chars
 
   def parse_char(self, c,x,y):
-    char = Character(c,x,y) if c in ['E','G'] else None
+    char = Character(c,x,y, self.elf_hp) if c == 'E' else Character(c,x,y) if c == 'G' else None
     val = Node(c == '#', x, y, char)
     if char: char.node = val
     return val, char
@@ -175,7 +178,7 @@ def squares_in_range(character, game):
   return flatten([[n for n in c.node.adjacent() if n.empty()] 
    for c in game.characters if c != character and c.ctype != character.ctype])
 
-def try_attack(character, targets):
+def try_attack(character, targets, game):
   adjacent = by_hitpoint(by_read_order(adjacent_targets(character, targets)))
   if len(adjacent) > 0:
     attack(character, adjacent[0], game)
@@ -214,13 +217,13 @@ def game_one_pass(character, game):
   if len(targets) == 0:
     return False
 
-  if not try_attack(character, targets):
+  if not try_attack(character, targets, game):
     squares = squares_for_character(character, game)
     #print("Reachable", character, squares)
     node = nearest_node(character, squares, game)
     if node:
       character.move(node)
-      try_attack(character, targets)
+      try_attack(character, targets, game)
 
   return True
 
@@ -231,14 +234,18 @@ def pretty(mapp):
 
 def hp_left(characters): return sum([c.hit_points for c in characters])
 
-def run_game(game):
+def run_game(game, break_if_elf_dies=False):
   pretty(game.mapp)
+  total_elves = len([c for c in game.characters if c.ctype == Character.ELF])
   for tick in itertools.count():
     print("-----------------------------")
     print("Round " + str(tick))
 
     no_elves = len([c for c in game.characters if c.ctype == Character.ELF])
     no_goblins = len(game.characters) - no_elves
+
+    if break_if_elf_dies and no_elves < total_elves:
+      return (tick * hp_left(game.characters), total_elves, no_elves, game.characters)
 
     if no_elves == 0 or no_goblins == 0:
       cont = False
@@ -251,10 +258,25 @@ def run_game(game):
       pretty(game.mapp)
     if not cont:
       print(tick, hp_left(game.characters), tick * hp_left(game.characters))
-      #print([(c, c.hit_points) for c in game.characters])
+      score = tick * hp_left(game.characters)
+      return (score, total_elves, no_elves, game.characters)
+
+def part1():
+  game = GameMap(sys.argv[1])
+  run_game(game)
+
+def part2():
+  for attack_power in itertools.count(23):
+    print("=============================================")
+    print("Attack Power:", attack_power)
+    game = GameMap(sys.argv[1], attack_power)
+    score, total, count, chars = run_game(game, True)
+    if total - count == 0:
+      print("Attack power from elves is", attack_power)
+      print([(c,c.hit_points) for c in chars])
+      print("Score is ", score)
       return
 
-game = GameMap(sys.argv[1])
-run_game(game)
+part2()
 
 # 209440 too high
