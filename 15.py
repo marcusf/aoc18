@@ -1,4 +1,5 @@
 import itertools
+import sys
 from operator import attrgetter, itemgetter
 
 def window(seq, n=2):
@@ -12,34 +13,46 @@ def window(seq, n=2):
 
 def flatten(l): return [item for sublist in l for item in sublist]
 
-def dijkstra(start, end, game):
-  Q = []
-  [[Q.append(node) for node in y if not node.wall] for y in game.mapp]
+def prettyd(mapp):
+  def nn(c):
+    return hex(c.distance)[2:] if c.distance < 16 else '*'
+  def p(row):
+    return "".join([nn(c) if not c.wall else '#' for c in row])
+  for row in mapp: print(p(row))
+
+def dijkstra(start, ends, game):
+  Q = flatten([[node for node in y if node.empty()] for y in game.mapp])
+
+  Q.extend(ends)
+  Q.append(start)
 
   for node in Q: 
     node.distance = 10000
     node.prev = None
 
   start.distance = 0
-  sst = []
 
   while len(Q) > 0:
     Q.sort(key=attrgetter('distance'), reverse=True)
     u = Q.pop()
-    for v in u.adjacent():
-      alt = u.distance + (1000 if v.character else 1)
+    for v in u.adjacent_empty():
+    #for v in u.adjacent():
+      alt = u.distance + 1
       if alt < v.distance:
         v.distance = alt
         v.prev = u
 
-  S, u = [], end
-  if u.prev or u == start:
-    while u:
-      S.append(u)
-      u = u.prev
+  result = []
+  for end in ends:
+    S, u = [], end
+    if u.prev or u == start:
+      while u:
+        S.append(u)
+        u = u.prev
+    if len(S) > 0:
+      result.append((end,S))
 
-  print(S)
-  return S
+  return result
 
 # =======================================================================================
 class Node:
@@ -63,15 +76,14 @@ class Node:
     return cname + ' (' + perim + ')'
 
   def __repr__(self): 
-    pos = self.character.ctype if self.character else "#" if self.wall else "."
-    return "{} ({}x{})".format(pos, self.x, self.y)
+    #pos = self.character.ctype if self.character else "#" if self.wall else "."
+    return "{}x{}".format(self.x, self.y) #"{} ({}x{})".format(pos, self.x, self.y)
 
   def adjacent(self):
     return [c for c in [self.top, self.left, self.right, self.bottom] if c]
 
   def adjacent_empty(self):
     return [c for c in [self.top, self.left, self.right, self.bottom] if c and c.empty()]
-
 
   def empty(self):
     return not self.wall and not self.character
@@ -118,7 +130,7 @@ class GameMap:
     self.characters = chars
 
   def parse_char(self, c,x,y):
-    char = Character('E',x,y) if c == 'E' else Character('G',x,y) if c == 'G' else None
+    char = Character(c,x,y) if c in ['E','G'] else None
     val = Node(c == '#', x, y, char)
     if char: char.node = val
     return val, char
@@ -145,10 +157,8 @@ class GameMap:
     return mapp, characters
 
   def remove(self, character):
-    print("Removing", character)
     self.characters = [c for c in self.characters if c != character]
     character.die()
-
 
 # =======================================================================================
 def by_read_order(items): return sorted(sorted(items, key=attrgetter('x')), key=attrgetter('y'))
@@ -160,23 +170,10 @@ def attack(character, target, game):
   target.hit_points -= character.attack_power
   if target.hit_points <= 0:
     game.remove(target)
-  print(character,'hit',target,'with',target.hit_points,'remaining')
 
 def squares_in_range(character, game):
   return flatten([[n for n in c.node.adjacent() if n.empty()] 
    for c in game.characters if c != character and c.ctype != character.ctype])
-
-def reachable_squares(character, squares, game):
-  discovered, result = set(), []
-  def _r(node, distance):
-    discovered.add(node)
-    if node in squares:
-      result.append(node)
-    for v in node.adjacent():
-      if not v in discovered and v.empty():
-        _r(v, distance+1)
-  _r(character.node, 0)
-  return result
 
 def try_attack(character, targets):
   adjacent = by_hitpoint(by_read_order(adjacent_targets(character, targets)))
@@ -185,23 +182,31 @@ def try_attack(character, targets):
     return True
   return False
 
-def smallest_square_distances(c, lst):
-  r = sorted([(v, abs(c.x-v.x)+abs(c.y-v.y)) for v in lst], key=itemgetter(1))
-  print(r)
-  return by_read_order([v[0] for v in r if v[1] == r[0][1]]) if len(r) > 0 else []
-
 def nearest_node(character, squares, game):
-  square = squares[0]
-  paths = sorted([(node, len(dijkstra(node, square, game))) 
-    for node in character.node.adjacent() if node.empty()], key=itemgetter(1))
-  print(character, square, paths)
-  sorted_paths = by_read_order([p[0] for p in paths if p[1] == paths[0][1]])
+  min_dist, paths, debug = 100000, [], []
+  squares = sorted(dijkstra(character.node, squares, game), key=lambda x: len(x[1]))
+
+  if len(squares) == 0:
+    return None
+
+  dists = dijkstra(squares[0][0], character.node.adjacent_empty(), game)
+  
+  for (node, path) in dists:
+    dist = len(path)
+    if dist < min_dist:
+      paths = [node]
+      debug = [path]
+      min_dist = dist
+    elif dist == min_dist:
+      paths.append(node)
+      debug.append(path)
+
+  sorted_paths = by_read_order(paths)
   return sorted_paths[0]
 
-def get_nearest_squares(character, game):
+def squares_for_character(character, game):
   squares = squares_in_range(character, game)
-  reachable = reachable_squares(character, squares, game)
-  return smallest_square_distances(character, reachable)
+  return squares
 
 def game_one_pass(character, game):
   targets = find_targets(character, game)
@@ -210,9 +215,10 @@ def game_one_pass(character, game):
     return False
 
   if not try_attack(character, targets):
-    nearest_squares = get_nearest_squares(character, game)
-    if len(nearest_squares) > 0:
-      node = nearest_node(character, nearest_squares, game)
+    squares = squares_for_character(character, game)
+    #print("Reachable", character, squares)
+    node = nearest_node(character, squares, game)
+    if node:
       character.move(node)
       try_attack(character, targets)
 
@@ -231,18 +237,24 @@ def run_game(game):
     print("-----------------------------")
     print("Round " + str(tick))
 
-    ordering = by_read_order(game.characters)
+    no_elves = len([c for c in game.characters if c.ctype == Character.ELF])
+    no_goblins = len(game.characters) - no_elves
 
-    for c in ordering:
-      if c in game.characters: # In case they die mid for-loop
-        cont = game_one_pass(c, game)
+    if no_elves == 0 or no_goblins == 0:
+      cont = False
+    else:
+      ordering = by_read_order(game.characters)
+      for c in ordering:
+        if c in game.characters: # In case they die mid for-loop
+          #print(c)
+          cont = game_one_pass(c, game)
       pretty(game.mapp)
     if not cont:
       print(tick, hp_left(game.characters), tick * hp_left(game.characters))
-      print([(c, c.hit_points) for c in game.characters])
+      #print([(c, c.hit_points) for c in game.characters])
       return
 
-
-game = GameMap('15_8.example')
-
+game = GameMap(sys.argv[1])
 run_game(game)
+
+# 209440 too high
