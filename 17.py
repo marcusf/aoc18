@@ -76,7 +76,6 @@ def simulate(g):
           for xx in range(leftcliff,rightcliff): g[y][xx] = 3
           break
 
-  print("Filling in ", len(holes), "holes")
   for x, y in holes:
     if grid[y][x] in [0,3]:
       grid[y][x] = 2
