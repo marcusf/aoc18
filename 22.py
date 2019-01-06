@@ -86,7 +86,6 @@ def dijkstra(start, ends, nodes, edges):
   cost[start] = 0
 
   while q:
-    #q.sort(key=lambda n: cost[n], reverse=True)
     cc, u = heappop(q)
     if u in seen: 
       continue
@@ -136,45 +135,5 @@ def find_path():
 
   res = dijkstra(Node(start.x,start.y,'t'),ends,nodes,edges)
   print(max([max([c[1] for c in r[1]]) for r in res]))
-
-
-
-  #cur = target
-  #tool = 't'
-  #max_cost = straight_cost(target,start,tool)
-#
-  #queue = [(start,tool,0)]
-  #lengths = []
-  #visited = set()
-#
-  #while queue:
-  #  print(queue[-1])
-  #  cur, tool, cc = queue.pop(0)
-  #  if cur in visited:
-  #    continue
-  #  else:
-  #    visited.add(cur)
-  #  if cur == target:
-  #    print("Found one", cc)
-  #    lengths.append(cc)
-  #  else:
-  #    
-  #    for x,y in neighbors(cur):
-  #      if x > target.x + 100 or y > target.y + 500:
-  #        continue
-  #      if tool in permissible(x,y):
-  #        if 1+cc < max_cost:
-  #            queue.append((Point(x,y), tool, cc+1))
-  #      else:
-  #        for next_tool in permissible(x,y):
-  #          if cost(x,y,tool)+cc < max_cost:
-  #            cc += cost(x,y,next_tool)
-  #            queue.append((Point(x,y), next_tool, cc))
-#
-  #print(lengths)
-#
-  #print(h(target,start))
-  # between 1479 and 775
-  #print(costs)
 
 find_path()
